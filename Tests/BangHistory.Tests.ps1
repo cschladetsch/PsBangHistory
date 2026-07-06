@@ -3,7 +3,9 @@
 BeforeAll {
     . "$PSScriptRoot/../BangHistory.ps1"
 
-    # Fake history buffer, Id ascending, used by every test via mocked Get-History.
+    # Fake history buffer, Id ascending, used by every test via a mocked
+    # Get-BangHistoryBuffer — this bypasses both Get-History and any real
+    # PSReadLine persisted history file, keeping tests deterministic.
     $script:FakeHistory = @(
         [pscustomobject]@{ Id = 15; CommandLine = 'git status' }
         [pscustomobject]@{ Id = 16; CommandLine = 'docker run -d --name api-server -p 8080:80 nginx' }
@@ -11,17 +13,7 @@ BeforeAll {
         [pscustomobject]@{ Id = 18; CommandLine = 'git add server.config.json' }
     )
 
-    function Get-History {
-        param(
-            [int]$Count,
-            [int]$Id
-        )
-        if ($PSBoundParameters.ContainsKey('Id')) {
-            return $script:FakeHistory | Where-Object { $_.Id -eq $Id }
-        }
-        if ($PSBoundParameters.ContainsKey('Count')) {
-            return $script:FakeHistory | Select-Object -Last $Count
-        }
+    function Get-BangHistoryBuffer {
         return $script:FakeHistory
     }
 }
@@ -153,5 +145,3 @@ Describe 'Expand-BangHistory' {
         Expand-BangHistory -Line 'git status' | Should -Be 'git status'
     }
 }
-
-

@@ -11,7 +11,7 @@
 #   ~-N:*           all args of Nth-previous cmd
 #   ~-N:K           word K (0=command name) of Nth-previous cmd
 #   ~-N:A-B         word range A..B of Nth-previous cmd
-#   ~N              history event N by absolute Id     (bash !N)
+#   ~N              history event N by absolute Id, zero-based     (bash !N)
 #   ~N:$ / :^ / :* / :K / :A-B   same selectors, applied to event N
 #   ~[text]         most recent cmd containing "text"   (bash !?text?, substring anywhere)
 #   ~[text]:$ / :^ / :* / :K / :A-B   same selectors, applied to matched command
@@ -62,28 +62,71 @@ function Select-BangWords {
     }
 }
 
+function Get-BangHistoryBuffer {
+    <#
+    .SYNOPSIS
+        Returns the effective history buffer as an ordered array of
+        objects with Id and CommandLine properties.
+    .DESCRIPTION
+        Reads PSReadLine's persisted history file when one is configured
+        and present — this covers the current session AND every prior
+        session, since PSReadLine appends to that file live as commands
+        are entered. Falls back to the in-memory Get-History cmdlet (this
+        session only) if no persisted file is available.
+
+        Id is assigned sequentially by line position in the file, zero-based
+        (the first-ever recorded command is Id 0), not PSReadLine's
+        in-session history Id, since file-based entries span sessions and
+        have no native Id of their own.
+
+        Known limitation: PSReadLine encodes embedded newlines in
+        multi-line history entries; this reads each file line as one
+        command verbatim and does not decode that escaping.
+    #>
+    $path = $null
+    try { $path = (Get-PSReadLineOption -ErrorAction Stop).HistorySavePath } catch {}
+
+    if ($path -and (Test-Path -Path $path)) {
+        $lines = @(Get-Content -Path $path -ErrorAction SilentlyContinue)
+        if ($lines.Count -gt 0) {
+            $i = -1
+            return $lines | ForEach-Object {
+                $i++
+                [pscustomobject]@{ Id = $i; CommandLine = $_ }
+            }
+        }
+    }
+
+    return Get-History
+}
+
 function Get-BangCommandLine {
     param([string]$Ref)
 
+    $buffer = @(Get-BangHistoryBuffer)
+    if ($buffer.Count -eq 0) { return $null }
+
     if ($Ref -eq '~~') {
-        $h = Get-History -Count 1
+        $h = $buffer[-1]
     }
     elseif ($Ref -match '^~-(\d+)$') {
         $n = [int]$Matches[1]
-        $h = Get-History -Count $n | Select-Object -First 1
+        $idx = $buffer.Count - $n
+        if ($idx -lt 0) { return $null }
+        $h = $buffer[$idx]
     }
     elseif ($Ref -match '^~(\d+)$') {
         $id = [int]$Matches[1]
-        $h = Get-History -Id $id -ErrorAction SilentlyContinue
+        $h = $buffer | Where-Object { $_.Id -eq $id } | Select-Object -Last 1
     }
     elseif ($Ref -match '^~\[(.+)\]$') {
         $needle = $Matches[1]
-        $h = Get-History | Where-Object { $_.CommandLine -like "*$needle*" } |
+        $h = $buffer | Where-Object { $_.CommandLine -like "*$needle*" } |
              Select-Object -Last 1
     }
     elseif ($Ref -match '^~([A-Za-z_][\w.\-\/]*)$') {
         $prefix = $Matches[1]
-        $h = Get-History | Where-Object { $_.CommandLine -like "$prefix*" } |
+        $h = $buffer | Where-Object { $_.CommandLine -like "$prefix*" } |
              Select-Object -Last 1
     }
     else {

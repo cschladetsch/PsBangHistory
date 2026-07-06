@@ -69,7 +69,11 @@ Pressing Enter on a line containing a `~` token expands it into the buffer and s
 
 **If an expansion resolves to the wrong thing**, press **Ctrl+Z** (PowerShell's default Undo binding) to revert the buffer back to exactly what you typed, fix the token, and try again.
 
-Operates on `Get-History` (session command history), the direct analog of what bash's bang-notation reads from — not the separate PSReadLine persisted history file.
+Operates on PSReadLine's persisted history file when one exists — that covers commands from every prior session, not just this one, since PSReadLine appends to that file live as you type. Falls back to `Get-History` (session-only) if no persisted file is configured or found. Check your file with:
+
+```powershell
+(Get-PSReadLineOption).HistorySavePath
+```
 
 Bash's `!#` (the not-yet-submitted current line) has no equivalent here — there's no reliable hook into unsubmitted buffer text outside the Enter handler itself.
 
@@ -107,9 +111,10 @@ PS> rm -Recurse ~-5:*
 
 **Absolute recall by history id**
 ```powershell
-PS> Get-History | Select-Object Id, CommandLine -Last 20
+PS> Get-BangHistoryBuffer | Select-Object Id, CommandLine | Select-Object -Last 20
 PS> ~142
 ```
+Note: this `Id` is line-position in the persisted history file, not the `Id` shown by `Get-History` — the two numbering schemes differ once `~N` is reading cross-session history. Always check ids via `Get-BangHistoryBuffer`, not `Get-History`.
 
 **Quick fix a typo/detail and re-run without retyping the whole command**
 ```powershell
