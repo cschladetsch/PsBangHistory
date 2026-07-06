@@ -94,7 +94,72 @@ function Get-BangCommandLine {
     return $h.CommandLine
 }
 
+function Show-BangHistoryHelp {
+    <#
+    .SYNOPSIS
+        Prints a quick reference table of all ~ bang-history tokens.
+    .DESCRIPTION
+        Run this directly at the prompt — it's a normal command, not a ~
+        token itself, so it isn't intercepted or expanded.
+    .EXAMPLE
+        Show-BangHistoryHelp
+    #>
+    $rows = @(
+        [pscustomobject]@{ Token = '~~';             Meaning = 'last command';                              Bash = '!!' }
+        [pscustomobject]@{ Token = '~$';              Meaning = 'last word of last command';                 Bash = '!$' }
+        [pscustomobject]@{ Token = '~-N';             Meaning = 'Nth-previous command';                      Bash = '!-N' }
+        [pscustomobject]@{ Token = '~-N:$';           Meaning = 'last word of Nth-previous command';         Bash = '!-N:$' }
+        [pscustomobject]@{ Token = '~-N:^';           Meaning = 'first arg of Nth-previous command';         Bash = '!-N:^' }
+        [pscustomobject]@{ Token = '~-N:*';           Meaning = 'all args of Nth-previous command';          Bash = '!-N:*' }
+        [pscustomobject]@{ Token = '~-N:K';           Meaning = 'word K (0=cmd name) of Nth-previous cmd';   Bash = '!-N:K' }
+        [pscustomobject]@{ Token = '~-N:A-B';         Meaning = 'word range A..B of Nth-previous command';   Bash = '!-N:A-B' }
+        [pscustomobject]@{ Token = '~-N:K*';          Meaning = 'words K..end of Nth-previous command';      Bash = '!-N:K*' }
+        [pscustomobject]@{ Token = '~N';              Meaning = 'history event N by absolute Id';            Bash = '!N' }
+        [pscustomobject]@{ Token = '~N:$ etc';        Meaning = 'same selectors, applied to event N';        Bash = '!N:$ etc' }
+        [pscustomobject]@{ Token = '~[text]';         Meaning = 'most recent cmd containing text anywhere';  Bash = '!?text?' }
+        [pscustomobject]@{ Token = '~[text]:$ etc';   Meaning = 'same selectors, applied to matched cmd';    Bash = '!text:$ etc' }
+        [pscustomobject]@{ Token = '~word';           Meaning = 'most recent cmd starting with word';        Bash = '!word' }
+        [pscustomobject]@{ Token = '~word:$ etc';     Meaning = 'same selectors, applied to matched cmd';    Bash = '!word:$ etc' }
+        [pscustomobject]@{ Token = '~~:gs/old/new/';  Meaning = 'every "old" replaced by "new" (no / allowed in old/new)'; Bash = '!!:gs/old/new/' }
+        [pscustomobject]@{ Token = '^old^new^';       Meaning = 'last command, first "old" replaced by "new"'; Bash = '^old^new^' }
+    )
+
+    $rows | Format-Table -AutoSize -Wrap
+
+    Write-Host "Preview/confirm: Enter expands, Enter again runs. Ctrl+Z undoes a bad expansion." -ForegroundColor DarkGray
+    Write-Host "Full docs: Get-Help Expand-BangHistory -Full" -ForegroundColor DarkGray
+}
+
 function Expand-BangHistory {
+    <#
+    .SYNOPSIS
+        Expands ~ bang-history tokens in a line of PowerShell input.
+
+    .DESCRIPTION
+        Bash-style bang-history expansion for PowerShell, using ~ as the
+        sigil instead of ! (which PowerShell reserves as a logical operator).
+        See Show-BangHistoryHelp for the full token/selector reference table.
+
+    .PARAMETER Line
+        The raw input line, possibly containing one or more ~ tokens.
+
+    .EXAMPLE
+        Expand-BangHistory -Line '~~'
+        Expands to the full text of the last executed command.
+
+    .EXAMPLE
+        Expand-BangHistory -Line 'git add ~$'
+        Expands ~$ to the last word of the last command, leaving the rest
+        of the line untouched.
+
+    .EXAMPLE
+        Expand-BangHistory -Line '~[docker]:^'
+        Finds the most recent command containing "docker" and returns its
+        first argument.
+
+    .LINK
+        Show-BangHistoryHelp
+    #>
     param([string]$Line)
 
     # Quick substitution: ^old^new^ (or ^old^new) operates on the entire

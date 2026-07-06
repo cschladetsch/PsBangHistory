@@ -32,6 +32,17 @@ Bash-style bang-history expansion for PowerShell, using `~` instead of `!` (sinc
 
 Or add that line to `$PROFILE` to load on every session.
 
+## Help
+
+Two ways to get the reference table without leaving the terminal:
+
+```powershell
+Show-BangHistoryHelp        # quick cheat-sheet table, printed directly
+Get-Help Expand-BangHistory -Full   # full comment-based help with examples
+```
+
+`Show-BangHistoryHelp` is a normal function call — type it exactly as shown, not as a `~` token, or it'll be treated as a history search instead of a help request.
+
 ## Behaviour
 
 Pressing Enter on a line containing a `~` token expands it into the buffer and stops — it does not execute. Press Enter again on the now-expanded (token-free) line to run it. This is a deliberate preview/confirm step, not a bug.
