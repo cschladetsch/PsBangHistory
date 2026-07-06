@@ -16,7 +16,12 @@ Bash-style bang-history expansion for PowerShell, using `~` instead of `!` (sinc
 | `~-N:A-B`      | word range A..B of Nth-previous command       | `!-N:A-B`        |
 | `~N`           | history event N by absolute Id                | `!N`             |
 | `~N:$` etc     | same selectors, applied to event N            | `!N:$` etc       |
-| `~[text]`      | most recent command containing `text`         | `!text` (bash uses prefix match; this is substring) |
+| `~[text]`      | most recent command containing `text` anywhere | `!?text?`       |
+| `~word`        | most recent command *starting with* `word`   | `!word`          |
+| `~word:$` etc  | same selectors, applied to the prefix-matched command | `!word:$` etc |
+| `~-N:K*`       | words K..end of Nth-previous command          | `!-N:K*`         |
+| `~~:gs/old/new/` | last command, every `old` replaced with `new` | `!!:gs/old/new/` |
+| `^old^new^`    | last command, first `old` replaced with `new` | `^old^new^`      |
 | `~[text]:$` etc | same selectors, applied to the matched command | `!text:$` etc   |
 
 ## Install
@@ -32,6 +37,8 @@ Or add that line to `$PROFILE` to load on every session.
 Pressing Enter on a line containing a `~` token expands it into the buffer and stops — it does not execute. Press Enter again on the now-expanded (token-free) line to run it. This is a deliberate preview/confirm step, not a bug.
 
 Operates on `Get-History` (session command history), the direct analog of what bash's bang-notation reads from — not the separate PSReadLine persisted history file.
+
+Bash's `!#` (the not-yet-submitted current line) has no equivalent here — there's no reliable hook into unsubmitted buffer text outside the Enter handler itself.
 
 ## Demos
 
@@ -67,6 +74,27 @@ PS> rm -Recurse ~-5:*
 ```powershell
 PS> Get-History | Select-Object Id, CommandLine -Last 20
 PS> ~142
+```
+
+**Quick fix a typo/detail and re-run without retyping the whole command**
+```powershell
+PS> git push origin mian
+PS> ^mian^main^
+# expands to: git push origin main
+```
+
+**Prefix match — bash's actual !string behavior**
+```powershell
+PS> git commit -m "fix bug"
+PS> ~git
+# most recent command starting with "git" — not just containing it anywhere
+```
+
+**Global substitution across an entire command**
+```powershell
+PS> docker build -t myapp:v1.2.3 .
+PS> ~~:gs/v1.2.3/v1.2.4/
+# expands to: docker build -t myapp:v1.2.4 .
 ```
 
 ## License
