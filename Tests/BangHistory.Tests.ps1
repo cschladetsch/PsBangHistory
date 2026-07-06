@@ -75,9 +75,9 @@ Describe 'Get-BangCommandLine' {
     }
 
     It 'resolves ~-N to the Nth-previous command' {
-        # 4 entries total; -2 back from "current" (not-yet-in-history) means
-        # 2nd most recent of the last 2 entries.
-        Get-BangCommandLine -Ref '~-2' | Should -Be 'docker run -d --name api-server -p 8080:80 nginx'
+        # bash convention: !-1 == !! (most recent). !-2 is the 2nd-most-recent
+        # event, i.e. one before the last, not two events further back.
+        Get-BangCommandLine -Ref '~-2' | Should -Be 'vim server.config.json'
     }
 
     It 'resolves ~N to an absolute history id' {
@@ -107,11 +107,11 @@ Describe 'Expand-BangHistory' {
     }
 
     It 'expands ~-N:$ to the last word of the Nth-previous command' {
-        Expand-BangHistory -Line 'less ~-3:$' | Should -Be 'less server.config.json'
+        Expand-BangHistory -Line 'less ~-3:$' | Should -Be 'less nginx'
     }
 
     It 'expands ~N (absolute) with a selector' {
-        Expand-BangHistory -Line 'echo ~17:^' | Should -Be 'echo vim'
+        Expand-BangHistory -Line 'echo ~17:^' | Should -Be 'echo server.config.json'
     }
 
     It 'expands ~[text]:K (search plus word selector)' {

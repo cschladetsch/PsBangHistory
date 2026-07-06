@@ -19,6 +19,7 @@
 #   ~word:$ etc     same selectors, applied to the prefix-matched command
 #   ~-N:K*          words K..end of Nth-previous command (bash !-N:K*)
 #   ~~:gs/old/new/  last command with every "old" replaced by "new" (bash !!:gs/old/new/)
+#                   note: neither "old" nor "new" may contain a literal "/"
 #   ^old^new^       quick substitution: last command, first "old" replaced by "new", re-run
 #
 # ~# (bash's "current typed line so far") is not supported — there's no
@@ -53,7 +54,7 @@ function Select-BangWords {
             $a = [int]$Matches[1]; $b = [int]$Matches[2]
             return ($Words[$a..$b] -join ' ')
         }
-        '^gs/(.*)/(.*)/?$' {
+        '^gs/([^/]*)/([^/]*)/?$' {
             $findText = $Matches[1]; $replaceText = $Matches[2]
             return (($Words -join ' ') -replace [regex]::Escape($findText), $replaceText)
         }
@@ -114,7 +115,7 @@ function Expand-BangHistory {
     $Line = $Line -replace '~\$', '~~:$'
 
     $refPattern = '~~|~-\d+|~\d+|~\[[^\]]+\]|~[A-Za-z_][\w.\-\/]*'
-    $selPattern = '\$|\^|\*|\d+\*|\d+(?:-\d+)?|gs/.*?/.*?/?'
+    $selPattern = '\$|\^|\*|\d+\*|\d+(?:-\d+)?|gs/[^/]*/[^/]*/?'
     $pattern = "(?<ref>$refPattern)(?::(?<sel>$selPattern))?"
 
     $result = [regex]::Replace($Line, $pattern, {
