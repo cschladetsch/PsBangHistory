@@ -94,21 +94,29 @@ function Expand-BangHistory {
     return $result
 }
 
-Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
-    param($key, $arg)
+try {
+    Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
+        param($key, $arg)
 
-    $line = $null
-    $cursor = $null
-    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+        $line = $null
+        $cursor = $null
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
 
-    if ($line -match '~') {
-        $expanded = Expand-BangHistory -Line $line
-        if ($expanded -ne $line) {
-            [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-            [Microsoft.PowerShell.PSConsoleReadLine]::Insert($expanded)
-            return
+        if ($line -match '~') {
+            $expanded = Expand-BangHistory -Line $line
+            if ($expanded -ne $line) {
+                [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+                [Microsoft.PowerShell.PSConsoleReadLine]::Insert($expanded)
+                return
+            }
         }
-    }
 
-    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+    }
+}
+catch {
+    # Non-interactive host (e.g. CI test runner) — key handler registration
+    # isn't meaningful there. The Expand-BangHistory / Get-BangCommandLine
+    # functions above are still defined and testable.
+    Write-Verbose "Skipped PSReadLine key handler registration: $_"
 }
