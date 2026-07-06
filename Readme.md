@@ -32,6 +32,26 @@ Bash-style bang-history expansion for PowerShell, using `~` instead of `!` (sinc
 
 Or add that line to `$PROFILE` to load on every session.
 
+### Extracting the release archive on Windows
+
+`Expand-Archive` only handles `.zip` — it will not open a `.tar.gz`. Use Windows' built-in `tar.exe` (bsdtar, shipped since Windows 10 1803) instead:
+
+```powershell
+tar xzf PsBangHistory.tar.gz -C .
+```
+
+Note this `tar.exe` doesn't support GNU-style `--overwrite`; it overwrites existing files by default, so just omit the flag.
+
+## Testing
+
+```powershell
+Install-Module -Name Pester -MinimumVersion 5.0.0 -Scope CurrentUser
+Import-Module Pester -MinimumVersion 5.0.0 -Force
+Invoke-Pester .\Tests -Output Detailed
+```
+
+Always invoke through `Invoke-Pester .\Tests`, not by running the test file directly — Windows ships an old Pester 3.4.0 under `Program Files` that predates the syntax used here, and direct invocation isn't the intended entry point in Pester 5 regardless.
+
 ## Help
 
 Two ways to get the reference table without leaving the terminal:
