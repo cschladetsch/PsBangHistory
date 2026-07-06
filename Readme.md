@@ -17,12 +17,12 @@ Bash-style bang-history expansion for PowerShell, using `~` instead of `!` (sinc
 | `~N`           | history event N by absolute Id                | `!N`             |
 | `~N:$` etc     | same selectors, applied to event N            | `!N:$` etc       |
 | `~[text]`      | most recent command containing `text` anywhere | `!?text?`       |
+| `~[text]:$` etc | same selectors, applied to the matched command | `!text:$` etc   |
 | `~word`        | most recent command *starting with* `word`   | `!word`          |
 | `~word:$` etc  | same selectors, applied to the prefix-matched command | `!word:$` etc |
 | `~-N:K*`       | words K..end of Nth-previous command          | `!-N:K*`         |
 | `~~:gs/old/new/` | last command, every `old` replaced with `new` | `!!:gs/old/new/` |
 | `^old^new^`    | last command, first `old` replaced with `new` | `^old^new^`      |
-| `~[text]:$` etc | same selectors, applied to the matched command | `!text:$` etc   |
 
 ## Install
 
@@ -36,9 +36,13 @@ Or add that line to `$PROFILE` to load on every session.
 
 Pressing Enter on a line containing a `~` token expands it into the buffer and stops — it does not execute. Press Enter again on the now-expanded (token-free) line to run it. This is a deliberate preview/confirm step, not a bug.
 
+**If an expansion resolves to the wrong thing**, press **Ctrl+Z** (PowerShell's default Undo binding) to revert the buffer back to exactly what you typed, fix the token, and try again.
+
 Operates on `Get-History` (session command history), the direct analog of what bash's bang-notation reads from — not the separate PSReadLine persisted history file.
 
 Bash's `!#` (the not-yet-submitted current line) has no equivalent here — there's no reliable hook into unsubmitted buffer text outside the Enter handler itself.
+
+`gs/old/new/` — neither `old` nor `new` may contain a literal `/`, since `/` is the field delimiter.
 
 ## Demos
 
