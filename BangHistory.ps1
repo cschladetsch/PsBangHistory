@@ -11,6 +11,8 @@
 #   ~-N:*           all args of Nth-previous cmd
 #   ~-N:K           word K (0=command name) of Nth-previous cmd
 #   ~-N:A-B         word range A..B of Nth-previous cmd
+#   ~N              history event N by absolute Id     (bash !N)
+#   ~N:$ / :^ / :* / :K / :A-B   same selectors, applied to event N
 #   ~[text]         most recent cmd containing "text"   (bash !text, but substring not prefix)
 #   ~[text]:$ / :^ / :* / :K / :A-B   same selectors, applied to matched command
 #
@@ -52,6 +54,10 @@ function Get-BangCommandLine {
         $n = [int]$Matches[1]
         $h = Get-History -Count $n | Select-Object -First 1
     }
+    elseif ($Ref -match '^~(\d+)$') {
+        $id = [int]$Matches[1]
+        $h = Get-History -Id $id -ErrorAction SilentlyContinue
+    }
     elseif ($Ref -match '^~\[(.+)\]$') {
         $needle = $Matches[1]
         $h = Get-History | Where-Object { $_.CommandLine -like "*$needle*" } |
@@ -71,7 +77,7 @@ function Expand-BangHistory {
     # normalize the !$-equivalent shorthand first
     $Line = $Line -replace '~\$', '~~:$'
 
-    $pattern = '(?<ref>~~|~-\d+|~\[[^\]]+\])(?::(?<sel>\$|\^|\*|\d+(?:-\d+)?))?'
+    $pattern = '(?<ref>~~|~-\d+|~\d+|~\[[^\]]+\])(?::(?<sel>\$|\^|\*|\d+(?:-\d+)?))?'
 
     $result = [regex]::Replace($Line, $pattern, {
         param($m)
