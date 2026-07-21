@@ -8,6 +8,7 @@ Bash-style bang-history expansion for PowerShell, using `~` instead of `!` (sinc
 |----------------|-----------------------------------------------|------------------|
 | `~~`           | last command                                  | `!!`             |
 | `~$`           | last word of last command                     | `!$`             |
+| `~*`           | all args of last command                      | `!*`             |
 | `~-N`          | Nth-previous command                          | `!-N`            |
 | `~-N:$`        | last word of Nth-previous command             | `!-N:$`          |
 | `~-N:^`        | first arg of Nth-previous command             | `!-N:^`          |
@@ -92,6 +93,13 @@ PS> ~~
 PS> vim server.config.json
 PS> git add ~$
 # expands to: git add server.config.json
+```
+
+**Reuse every argument from the last command**
+```powershell
+PS> docker run -d --name api -p 8080:80 nginx
+PS> echo ~*
+# expands to: echo -d --name api -p 8080:80 nginx
 ```
 
 **Search history and extract an argument**

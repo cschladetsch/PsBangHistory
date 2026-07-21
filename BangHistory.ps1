@@ -5,6 +5,7 @@
 # Supported syntax:
 #   ~~              last command                 (bash !!)
 #   ~$              last word of last command     (bash !$)
+#   ~*              all args of last command      (bash !*)
 #   ~-N             Nth-previous command           (bash !-N)
 #   ~-N:$           last word of Nth-previous cmd
 #   ~-N:^           first arg of Nth-previous cmd
@@ -150,6 +151,7 @@ function Show-BangHistoryHelp {
     $rows = @(
         [pscustomobject]@{ Token = '~~';             Meaning = 'last command';                              Bash = '!!' }
         [pscustomobject]@{ Token = '~$';              Meaning = 'last word of last command';                 Bash = '!$' }
+        [pscustomobject]@{ Token = '~*';              Meaning = 'all args of last command';                  Bash = '!*' }
         [pscustomobject]@{ Token = '~-N';             Meaning = 'Nth-previous command';                      Bash = '!-N' }
         [pscustomobject]@{ Token = '~-N:$';           Meaning = 'last word of Nth-previous command';         Bash = '!-N:$' }
         [pscustomobject]@{ Token = '~-N:^';           Meaning = 'first arg of Nth-previous command';         Bash = '!-N:^' }
@@ -196,6 +198,11 @@ function Expand-BangHistory {
         of the line untouched.
 
     .EXAMPLE
+        Expand-BangHistory -Line 'echo ~*'
+        Expands ~* to every argument (excluding the command name itself)
+        of the last command.
+
+    .EXAMPLE
         Expand-BangHistory -Line '~[docker]:^'
         Finds the most recent command containing "docker" and returns its
         first argument.
@@ -219,8 +226,9 @@ function Expand-BangHistory {
         return $Line
     }
 
-    # normalize the !$-equivalent shorthand first
+    # normalize the !$-equivalent and !*-equivalent shorthands first
     $Line = $Line -replace '~\$', '~~:$'
+    $Line = $Line -replace '~\*', '~~:*'
 
     $refPattern = '~~|~-\d+|~\d+|~\[[^\]]+\]|~[A-Za-z_][\w.\-\/]*'
     $selPattern = '\$|\^|\*|\d+\*|\d+(?:-\d+)?|gs/[^/]*/[^/]*/?'

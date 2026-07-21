@@ -98,6 +98,10 @@ Describe 'Expand-BangHistory' {
         Expand-BangHistory -Line 'vim ~$' | Should -Be 'vim server.config.json'
     }
 
+    It 'expands ~* to all args of the last command' {
+        Expand-BangHistory -Line 'echo ~*' | Should -Be 'echo add server.config.json'
+    }
+
     It 'expands ~-N:$ to the last word of the Nth-previous command' {
         Expand-BangHistory -Line 'less ~-3:$' | Should -Be 'less nginx'
     }
