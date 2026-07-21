@@ -149,3 +149,31 @@ Describe 'Expand-BangHistory' {
         Expand-BangHistory -Line 'git status' | Should -Be 'git status'
     }
 }
+
+Describe 'Resolve-BangHistoryExpansion' {
+    # Regression coverage for a real bug: the Enter key handler used to gate
+    # on "does the line contain a literal ~" before calling
+    # Expand-BangHistory at all. ^old^new^ contains no ~, so that guard
+    # silently skipped it in every real session even though
+    # Expand-BangHistory itself resolved it correctly — the README's own
+    # "quick fix a typo" demo never actually worked when typed at a live
+    # prompt. Resolve-BangHistoryExpansion is what both the key handler and
+    # these tests call now, so the two can't drift apart again.
+
+    It 'resolves ^old^new^ even though the line contains no ~' {
+        '^server^client^' | Should -Not -Match '~'
+        Resolve-BangHistoryExpansion -Line '^server^client^' | Should -Be 'git add client.config.json'
+    }
+
+    It 'resolves ~~ tokens the same as Expand-BangHistory' {
+        Resolve-BangHistoryExpansion -Line '~~' | Should -Be 'git add server.config.json'
+    }
+
+    It 'returns $null when there is nothing to expand' {
+        Resolve-BangHistoryExpansion -Line 'git status' | Should -BeNullOrEmpty
+    }
+
+    It 'returns $null for an unmatched ~ token (same text in and out)' {
+        Resolve-BangHistoryExpansion -Line '~5000' | Should -BeNullOrEmpty
+    }
+}

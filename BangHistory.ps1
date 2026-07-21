@@ -249,6 +249,32 @@ function Expand-BangHistory {
     return $result
 }
 
+function Resolve-BangHistoryExpansion {
+    <#
+    .SYNOPSIS
+        Decides what an Enter press should do with the current buffer line.
+    .DESCRIPTION
+        Returns the expanded text if Line contains a bang-history token that
+        resolves to something different, or $null if Enter should just
+        accept the line as typed.
+
+        This exists as its own function, called by both the Enter key
+        handler and by tests, specifically so the two can't drift apart.
+        The key handler used to gate on "does Line contain a literal ~"
+        before bothering to call Expand-BangHistory — a reasonable-looking
+        optimization that quietly broke ^old^new^, which contains no ~ at
+        all. That token type resolved correctly in Expand-BangHistory the
+        whole time; the guard in front of it just never let it through in
+        a real session. Routing both callers through one decision function
+        makes that class of divergence impossible: whatever
+        Expand-BangHistory recognizes, the key handler acts on.
+    #>
+    param([string]$Line)
+    $expanded = Expand-BangHistory -Line $Line
+    if ($expanded -ne $Line) { return $expanded }
+    return $null
+}
+
 try {
     Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
         param($key, $arg)
@@ -257,12 +283,10 @@ try {
         $cursor = $null
         [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
 
-        if ($line -match '~') {
-            $expanded = Expand-BangHistory -Line $line
-            if ($expanded -ne $line) {
-                [Microsoft.PowerShell.PSConsoleReadLine]::Replace(0, $line.Length, $expanded)
-                return
-            }
+        $expanded = Resolve-BangHistoryExpansion -Line $line
+        if ($null -ne $expanded) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::Replace(0, $line.Length, $expanded)
+            return
         }
 
         [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
